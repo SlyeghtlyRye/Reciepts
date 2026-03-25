@@ -124,8 +124,7 @@ function PrintedLine({ line }) {
   );
 }
 
-// Scrollable overlay — works for both live paper and printed receipt
-function ScrollOverlay({ header, date, lines, isReceipt, onClose }) {
+function ScrollOverlay({ header, date, lines, onClose, onUpdateLine }) {
   return (
     <div style={{
       position: "fixed", inset: 0, zIndex: 100,
@@ -145,9 +144,51 @@ function ScrollOverlay({ header, date, lines, isReceipt, onClose }) {
           {header && <div style={{ fontSize: 15, fontWeight: "bold", letterSpacing: 2, marginBottom: 3 }}>{header}</div>}
           <div style={{ fontSize: 10, color: "#999" }}>{date}</div>
         </div>
-        {lines.map((l, i) => <PrintedLine key={i} line={l} />)}
+        {lines.map((l, i) => (
+          <Line key={i} line={l}
+            onEdit={v => onUpdateLine(i, v)}
+            onDelete={() => onUpdateLine(i, null)}
+          />
+        ))}
       </div>
     </div>
+  );
+}
+
+function PrintButton({ phase, ripping, feeding, onClick }) {
+  const [hovered, setHovered] = useState(false);
+  const disabled = ripping || feeding;
+  const ripped  = phase === "ripped";
+  const writing = phase === "writing";
+
+  let bg, color;
+  if (disabled) {
+    bg = "#2a2a2a"; color = "#444";
+  } else if (ripped) {
+    bg = hovered ? "#555" : "#444";
+    color = hovered ? "#ddd" : "#bbb";
+  } else if (writing) {
+    bg = hovered ? "#aaff44" : "#74ff039a";
+    color = "#111";
+  } else {
+    bg = "#2a2a2a"; color = "#444";
+  }
+
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        marginTop: 10, width: "100%", padding: "8px", border: "none", borderRadius: 4,
+        fontFamily: "'Courier New',monospace", fontSize: 11, fontWeight: "bold", letterSpacing: 1,
+        background: bg, color,
+        cursor: disabled ? "default" : "pointer",
+        transition: "background 0.15s, color 0.15s",
+      }}>
+      {ripped ? "NEW RECIEPT ↵" : "PRINT 🖶"}
+    </button>
   );
 }
 
@@ -159,7 +200,6 @@ export default function ThermalJournal() {
   const [date,     setDate]     = useState(now());
   const [editDate, setEditDate] = useState(false);
   const [phase,    setPhase]    = useState("writing");
-  // null | "paper" | "receipt"
   const [overlay,  setOverlay]  = useState(null);
 
   const [receipt,     setReceipt]     = useState({ lines: [], header: "", date: "" });
@@ -191,7 +231,7 @@ export default function ThermalJournal() {
   };
 
   const onTextKey = e => {
-    if (phase === "ripped") { e.preventDefault(); startNew(e.key.length === 1 ? e.key : ""); return; }
+    if (phase === "ripped") { if (e.key.length === 1) startNew(e.key); return; }
     if (phase !== "writing") return;
     if (e.key === "Enter")    { e.preventDefault(); commit(); }
     if (e.key === "Backspace" && text === "" && lines.length > 0) { e.preventDefault(); pullBack(); }
@@ -237,10 +277,10 @@ export default function ThermalJournal() {
     cancelAnimationFrame(raf.current);
     setPhase("feeding"); setFeedProg(0);
     setHeader(""); setDate(now()); setOverlay(null);
+    if (firstChar) setText(firstChar);
+    inputRef.current?.focus();
     animate(550, p => setFeedProg(easeOut(p)), () => {
       setPhase("writing"); setReceiptY(0); setFeedProg(1);
-      if (firstChar) setText(firstChar);
-      setTimeout(() => inputRef.current?.focus(), 30);
     });
   };
 
@@ -259,15 +299,23 @@ export default function ThermalJournal() {
       boxSizing: "border-box", position: "relative", overflow: "hidden",
     }}>
 
-      {/* ── Scroll overlay ── */}
       {overlay === "paper" && (
-        <ScrollOverlay header={header} date={date} lines={lines} onClose={() => setOverlay(null)} />
+        <ScrollOverlay header={header} date={date} lines={lines} onClose={() => setOverlay(null)}
+          onUpdateLine={(i, v) => v === null
+            ? setLines(ls => ls.filter((_, j) => j !== i))
+            : setLines(ls => ls.map((x, j) => j === i ? v : x))
+          }
+        />
       )}
       {overlay === "receipt" && (
-        <ScrollOverlay header={receipt.header} date={receipt.date} lines={receipt.lines} onClose={() => setOverlay(null)} />
+        <ScrollOverlay header={receipt.header} date={receipt.date} lines={receipt.lines} onClose={() => setOverlay(null)}
+          onUpdateLine={(i, v) => v === null
+            ? setReceipt(r => ({ ...r, lines: r.lines.filter((_, j) => j !== i) }))
+            : setReceipt(r => ({ ...r, lines: r.lines.map((x, j) => j === i ? v : x) }))
+          }
+        />
       )}
 
-      {/* ── Receipt ── */}
       {showReceipt && (
         <div
           onClick={() => ripped && setOverlay("receipt")}
@@ -292,10 +340,8 @@ export default function ThermalJournal() {
         </div>
       )}
 
-      {/* ── Printer stack ── */}
       <div style={{ width: 300, display: "flex", flexDirection: "column", alignItems: "center", position: "relative", zIndex: 20 }}>
 
-        {/* Paper */}
         <div
           onClick={() => paperIsTall && setOverlay("paper")}
           style={{
@@ -305,7 +351,7 @@ export default function ThermalJournal() {
             overflow: "hidden", borderRadius: "4px 4px 0 0",
             background: showPaper ? "#fafaf8" : "transparent",
             boxShadow: showPaper ? "0 -4px 20px rgba(0,0,0,0.4)" : "none",
-            padding: showPaper ? `20px 24px 8px` : "0",
+            padding: showPaper ? "20px 24px 8px" : "0",
             opacity: feeding ? Math.min(feedProg * 2, 1) : 1,
             fontFamily: "'Courier New', monospace",
             cursor: paperIsTall ? "pointer" : "default",
@@ -352,7 +398,6 @@ export default function ThermalJournal() {
           </>}
         </div>
 
-        {/* Printer body */}
         <div style={{
           width: "100%", background: "#2c2c2c",
           borderRadius: "0 0 12px 12px", padding: "14px 20px 32px", boxSizing: "border-box",
@@ -361,13 +406,13 @@ export default function ThermalJournal() {
           <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
             <textarea ref={inputRef} value={text} onChange={e => setText(e.target.value)}
               onKeyDown={onTextKey} rows={1}
-              placeholder={writing ? "Write something..." : ripped ? "Start typing for a new entry..." : ""}
-              disabled={ripping || feeding}
+              placeholder={ripped ? "Start typing for a new entry..." : "Write something..."}
+              disabled={ripping}
               style={{
                 flex: 1, background: "transparent", border: "none", resize: "none", outline: "none",
                 color: "#e0e0e0", fontFamily: "'Courier New',monospace", fontSize: 13,
-                lineHeight: 1.6, caretColor: "#76ff03", boxSizing: "border-box",
-                opacity: (ripping || feeding) ? 0.25 : 1,
+                lineHeight: 1.6, caretColor: "#74ff039a", boxSizing: "border-box",
+                opacity: ripping ? 0.25 : 1,
               }} />
             {writing && (
               <input ref={valRef} value={val} onChange={e => setVal(e.target.value)}
@@ -376,17 +421,7 @@ export default function ThermalJournal() {
             )}
           </div>
 
-          <button onClick={print} disabled={ripping || feeding}
-            style={{
-              marginTop: 10, width: "100%", padding: "8px", border: "none", borderRadius: 4,
-              fontFamily: "'Courier New',monospace", fontSize: 11, fontWeight: "bold", letterSpacing: 1,
-              background: ripped ? "#444" : writing ? "#76ff03" : "#2a2a2a",
-              color:      ripped ? "#bbb" : writing ? "#111"    : "#444",
-              cursor: (ripping || feeding) ? "default" : "pointer",
-              transition: "background 0.3s, color 0.3s",
-            }}>
-            {ripped ? "NEW ENTRY ↵" : "PRINT ENTRY 🖨"}
-          </button>
+          <PrintButton phase={phase} ripping={ripping} feeding={feeding} onClick={print} />
 
           <Tips />
         </div>
