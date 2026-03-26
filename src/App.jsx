@@ -1,312 +1,40 @@
 import { useState, useRef, useEffect } from "react";
+import { PRINTER_H, TORN_CLIP, PAPER_WIDTH, paperStyle } from "./constants";
+import { now, animate, easeInOut, easeOut } from "./utils";
+import Line from "./components/Line";
+import TotalRow from "./components/TotalRow";
+import { PrintedLine, PrintedTotal } from "./components/PrintedLine";
+import Tips from "./components/Tips";
+import PrintButton from "./components/PrintButton";
+import ScrollOverlay from "./components/ScrollOverlay";
+import Docs from "./components/Docs";
 
-const now = () => new Date().toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" });
-
-const TORN_CLIP = `polygon(
-  0% 0%, 100% 0%,
-  100% 99%, 99% 100%, 97% 99%, 95% 100%, 93% 99%, 91% 100%,
-  89% 99%, 87% 100%, 85% 99%, 83% 100%, 81% 99%, 79% 100%,
-  77% 99%, 75% 100%, 73% 99%, 71% 100%, 69% 99%, 67% 100%,
-  65% 99%, 63% 100%, 61% 99%, 59% 100%, 57% 99%, 55% 100%,
-  53% 99%, 51% 100%, 49% 99%, 47% 100%, 45% 99%, 43% 100%,
-  41% 99%, 39% 100%, 37% 99%, 35% 100%, 33% 99%, 31% 100%,
-  29% 99%, 27% 100%, 25% 99%, 23% 100%, 21% 99%, 19% 100%,
-  17% 99%, 15% 100%, 13% 99%, 11% 100%, 9% 99%, 7% 100%,
-  5% 99%, 3% 100%, 1% 99%, 0% 100%
-)`;
-
-const PRINTER_H = 148;
-
-const paperStyle = (lineCount, extra = {}) => ({
-  width: "340px", boxSizing: "border-box",
-  background: "#fafaf8",
-  padding: `${20 + lineCount * 10}px 24px 8px`,
-  minHeight: `${28 + lineCount * 4}vh`,
-  fontFamily: "'Courier New', monospace",
-  ...extra,
-});
-
-const editInputStyle = {
-  border: "none", background: "#fffde7",
-  fontFamily: "'Courier New', monospace",
-  fontSize: 13, outline: "none", padding: "1px 2px",
-};
-
-const extractNum = str => {
-  if (!str) return null;
-  const negative = str.trimStart().startsWith("-");
-  // replace each letter with its alphabet position
-  const expanded = str.replace(/[a-zA-Z]/g, c => c.toLowerCase().charCodeAt(0) - 96);
-  const nums = expanded.match(/-?\d+(\.\d+)?/g);
-  if (!nums) return null;
-  const sum = nums.reduce((s, n) => s + parseFloat(n), 0);
-  return negative && sum > 0 ? -sum : sum;
-};
-
-const calcTotal = lines => {
-  let sum = 0, any = false;
-  for (const l of lines) {
-    const n = extractNum(l.value);
-    if (n !== null) { sum += n; any = true; }
-  }
-  return any ? sum : null;
-};
-
-const fmtNum = n => {
-  if (n === null) return "—";
-  return Number.isInteger(n) ? String(n) : n.toFixed(2);
-};
-
-function Tips() {
-  const [open, setOpen] = useState(false);
-  return (
-    <div style={{ marginTop: 16, textAlign: "center", position: "relative" }}>
-      <div style={{
-        position: "absolute", bottom: "calc(100% - 5px)", left: 0, right: 0,
-        background: "#2c2c2c", padding: "8px 4px 8px", lineHeight: 2,
-        fontSize: 10, color: "#555", textAlign: "left",
-        opacity: open ? 1 : 0, pointerEvents: open ? "auto" : "none",
-        transition: "opacity 0.2s ease",
-      }}>
-        {[["Enter","new line"],["Tab","jump to value field"],["Backspace","pull last line back"],["Click text","edit any line or date"]].map(([k,d]) => (
-          <div key={k}>· <b style={{ color: "#666" }}>{k}</b> — {d}</div>
-        ))}
-      </div>
-      <button onClick={() => setOpen(o => !o)} style={{
-        background: "none", border: "none", cursor: "pointer",
-        color: open ? "#aaa" : "#888", fontSize: 11,
-        fontFamily: "'Courier New', monospace", padding: "2px 6px",
-        lineHeight: 1, transition: "color 0.15s",
-      }}>{open ? "↩" : "ⓘ"}</button>
-    </div>
-  );
-}
-
-function Line({ line, onEdit, onDelete }) {
-  const [editText, setEditText] = useState(false);
-  const [editVal,  setEditVal]  = useState(false);
-  const [text, setText] = useState(line.text);
-  const [val,  setVal]  = useState(line.value || "");
-  const textRef = useRef();
-  const valRef  = useRef();
-
-  useEffect(() => { if (editText) textRef.current?.focus(); }, [editText]);
-  useEffect(() => { if (editVal)  valRef.current?.focus();  }, [editVal]);
-  useEffect(() => { setText(line.text); setVal(line.value || ""); }, [line]);
-
-  const saveText = () => { setEditText(false); onEdit({ ...line, text }); };
-  const saveVal  = () => { setEditVal(false);  onEdit({ ...line, value: val }); };
-
-  return (
-    <div style={{ display: "flex", alignItems: "center", gap: 4, minHeight: 22 }}>
-      {editText
-        ? <input ref={textRef} value={text} onChange={e => setText(e.target.value)}
-            onBlur={saveText} onKeyDown={e => e.key === "Enter" && saveText()}
-            style={{ ...editInputStyle, flex: 1, borderBottom: "1px solid #aaa" }} />
-        : <span onClick={() => setEditText(true)}
-            style={{ flex: 1, cursor: "text", fontSize: 13, fontFamily: "'Courier New',monospace", lineHeight: 1.6, wordBreak: "break-word", padding: "1px 2px" }}
-            onMouseEnter={e => e.currentTarget.style.background = "#f0f0ee"}
-            onMouseLeave={e => e.currentTarget.style.background = "transparent"}
-          >{line.text || <span style={{ color: "#ccc" }}>&nbsp;</span>}</span>
-      }
-      <div style={{ display: "flex", alignItems: "center", gap: 4, flexShrink: 0, maxWidth: 90 }}>
-        {(line.value || editVal) && <span style={{ color: "#ccc", fontSize: 11, letterSpacing: 1 }}>···</span>}
-        {editVal
-          ? <input ref={valRef} value={val} onChange={e => setVal(e.target.value)}
-              onBlur={saveVal}
-              onKeyDown={e => { if (e.key === "Enter") saveVal(); if (e.key === "Escape") { setEditVal(false); setVal(line.value || ""); } }}
-              placeholder="Value"
-              style={{ ...editInputStyle, width: 72, borderBottom: "1px solid #aaa", textAlign: "right" }} />
-          : <span onClick={() => setEditVal(true)}
-              style={{ fontSize: 12, fontFamily: "'Courier New',monospace", cursor: "text", padding: "1px 2px", textAlign: "right", color: line.value ? "#555" : "transparent", minWidth: line.value ? 16 : 48 }}
-              onMouseEnter={e => { e.currentTarget.style.color = line.value ? "#333" : "#ddd"; e.currentTarget.style.background = "#f0f0ee"; }}
-              onMouseLeave={e => { e.currentTarget.style.color = line.value ? "#555" : "transparent"; e.currentTarget.style.background = "transparent"; }}
-            >{line.value || "+"}</span>
-        }
-      </div>
-      <button onClick={onDelete} style={{ background: "none", border: "none", color: "#ccc", cursor: "pointer", fontSize: 12, padding: "0 2px", lineHeight: 1 }}
-        onMouseEnter={e => e.currentTarget.style.color = "#e57373"}
-        onMouseLeave={e => e.currentTarget.style.color = "#ccc"}
-      >×</button>
-    </div>
-  );
-}
-
-function TotalRow({ lines, override, onOverride, onHide, label, onLabelChange }) {
-  const [editingVal,   setEditingVal]   = useState(false);
-  const [editingLabel, setEditingLabel] = useState(false);
-  const [draft,      setDraft]      = useState("");
-  const [labelDraft, setLabelDraft] = useState("");
-  const valRef   = useRef();
-  const labelRef = useRef();
-
-  useEffect(() => { if (editingVal)   valRef.current?.focus();   }, [editingVal]);
-  useEffect(() => { if (editingLabel) labelRef.current?.focus(); }, [editingLabel]);
-
-  const auto    = calcTotal(lines);
-  const display = override !== null ? override : fmtNum(auto);
-
-  const startEditVal   = () => { setDraft(display); setEditingVal(true); };
-  const saveVal        = () => {
-    setEditingVal(false);
-    const n = extractNum(draft);
-    if (draft.trim() === "" || (n !== null && n === auto)) onOverride(null);
-    else onOverride(draft.trim());
-  };
-  const startEditLabel = () => { setLabelDraft(label); setEditingLabel(true); };
-  const saveLabel      = () => { setEditingLabel(false); onLabelChange(labelDraft.trim() || "TOTAL"); };
-
-  return (
-    <div style={{ marginTop: 6 }}>
-      {/* main row */}
-      <div style={{ display: "flex", alignItems: "center" }}>
-        {editingLabel
-          ? <input ref={labelRef} value={labelDraft} onChange={e => setLabelDraft(e.target.value)}
-              onBlur={saveLabel} onKeyDown={e => { if (e.key === "Enter") saveLabel(); if (e.key === "Escape") setEditingLabel(false); }}
-              style={{ ...editInputStyle, width: 72, borderBottom: "1px solid #aaa", fontSize: 12, fontWeight: "bold", letterSpacing: 1 }} />
-          : <span onClick={startEditLabel}
-              style={{ fontSize: 12, fontWeight: "bold", letterSpacing: 1, color: "#555", fontFamily: "'Courier New',monospace", cursor: "text", padding: "1px 2px" }}
-              onMouseEnter={e => e.currentTarget.style.background = "#f0f0ee"}
-              onMouseLeave={e => e.currentTarget.style.background = "transparent"}
-            >{label}</span>
-        }
-        <span style={{ flex: 1 }} />
-        {editingVal
-          ? <input ref={valRef} value={draft} onChange={e => setDraft(e.target.value)}
-              onBlur={saveVal} onKeyDown={e => { if (e.key === "Enter") saveVal(); if (e.key === "Escape") setEditingVal(false); }}
-              style={{ ...editInputStyle, width: 80, borderBottom: "1px solid #aaa", textAlign: "right", fontSize: 13, fontWeight: "bold" }} />
-          : <span onClick={startEditVal}
-              style={{ fontSize: 13, fontWeight: "bold", fontFamily: "'Courier New',monospace", color: "#333", cursor: "text", padding: "1px 4px" }}
-              onMouseEnter={e => e.currentTarget.style.background = "#f0f0ee"}
-              onMouseLeave={e => e.currentTarget.style.background = "transparent"}
-            >{display}</span>
-        }
-      </div>
-      {/* dismiss link — same style as scroll/clear all */}
-      <div style={{ textAlign: "center", marginTop: 4 }}>
-        <span onClick={onHide}
-          style={{ fontSize: 9, color: "#aaa", letterSpacing: 1, cursor: "pointer" }}
-          onMouseEnter={e => e.currentTarget.style.color = "#e57373"}
-          onMouseLeave={e => e.currentTarget.style.color = "#aaa"}
-        >no total</span>
-      </div>
-    </div>
-  );
-}
-
-function PrintedTotal({ lines, override, label }) {
-  const auto    = calcTotal(lines);
-  const display = override !== null ? override : fmtNum(auto);
-  return (
-    <div style={{ marginTop: 6, display: "flex", alignItems: "center" }}>
-      <span style={{ fontSize: 12, fontWeight: "bold", letterSpacing: 1, color: "#555", fontFamily: "'Courier New',monospace" }}>{label}</span>
-      <span style={{ flex: 1 }} />
-      <span style={{ fontSize: 13, fontWeight: "bold", fontFamily: "'Courier New',monospace", color: "#333" }}>{display}</span>
-    </div>
-  );
-}
-
-function PrintedLine({ line }) {
-  return (
-    <div style={{ display: "flex", alignItems: "baseline", minHeight: 22, gap: 4 }}>
-      <span style={{ flex: 1, fontSize: 13, lineHeight: 1.7, wordBreak: "break-word" }}>{line.text || <span>&nbsp;</span>}</span>
-      {line.value && <>
-        <span style={{ fontSize: 10, color: "#bbb", letterSpacing: 2 }}>···</span>
-        <span style={{ fontSize: 12, fontFamily: "'Courier New',monospace", color: "#555", whiteSpace: "nowrap" }}>{line.value}</span>
-      </>}
-    </div>
-  );
-}
-
-function ScrollOverlay({ header, date, lines, showTotal, totalOverride, totalLabel, onTotalOverride, onTotalLabelChange, onClose, onUpdateLine }) {
-  const [showTotalLocal, setShowTotalLocal] = useState(showTotal);
-  return (
-    <div style={{
-      position: "fixed", inset: 0, zIndex: 100,
-      background: "rgba(0,0,0,0.7)",
-      display: "flex", alignItems: "center", justifyContent: "center",
-    }} onClick={onClose}>
-      <div onClick={e => e.stopPropagation()} style={{
-        background: "#fafaf8", width: 340, maxHeight: "80vh",
-        borderRadius: 4, overflowY: "auto", padding: "20px 24px 24px",
-        fontFamily: "'Courier New', monospace", boxSizing: "border-box",
-        boxShadow: "0 12px 40px rgba(0,0,0,0.6)", scrollbarWidth: "none",
-      }}>
-        <div style={{ textAlign: "right", marginBottom: 8 }}>
-          <span onClick={onClose} style={{ fontSize: 10, color: "#bbb", cursor: "pointer" }}>✕ close</span>
-        </div>
-        <div style={{ textAlign: "center", marginBottom: 12, borderBottom: "1px dashed #ccc", paddingBottom: 10 }}>
-          {header && <div style={{ fontSize: 15, fontWeight: "bold", letterSpacing: 2, marginBottom: 3 }}>{header}</div>}
-          <div style={{ fontSize: 10, color: "#999" }}>{date}</div>
-        </div>
-        {lines.map((l, i) => (
-          <Line key={i} line={l}
-            onEdit={v => onUpdateLine(i, v)}
-            onDelete={() => onUpdateLine(i, null)}
-          />
-        ))}
-        {lines.length > 0 && (
-          <div style={{ marginTop: 6, borderTop: "1px dashed #ccc", paddingTop: 6 }}>
-            {showTotalLocal
-              ? <TotalRow lines={lines} override={totalOverride} onOverride={onTotalOverride}
-                  label={totalLabel} onLabelChange={onTotalLabelChange}
-                  onHide={() => setShowTotalLocal(false)} />
-              : <button onClick={() => setShowTotalLocal(true)} style={{ background: "none", border: "none", cursor: "pointer", color: "#888", fontSize: 11, padding: "0 2px", fontFamily: "'Courier New',monospace" }}
-                  onMouseEnter={e => e.currentTarget.style.color = "#aaa"}
-                  onMouseLeave={e => e.currentTarget.style.color = "#888"}
-                >›</button>
-            }
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function PrintButton({ phase, ripping, feeding, onClick }) {
-  const [hovered, setHovered] = useState(false);
-  const disabled = ripping || feeding;
-  const ripped  = phase === "ripped";
-  const writing = phase === "writing";
-  let bg, color;
-  if (disabled)      { bg = "#2a2a2a"; color = "#444"; }
-  else if (ripped)   { bg = hovered ? "#555" : "#444"; color = hovered ? "#ddd" : "#bbb"; }
-  else if (writing)  { bg = hovered ? "#aaff44" : "#76ff03"; color = "#111"; }
-  else               { bg = "#2a2a2a"; color = "#444"; }
-  return (
-    <button onClick={onClick} disabled={disabled}
-      onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}
-      style={{
-        marginTop: 10, width: "100%", padding: "8px", border: "none", borderRadius: 4,
-        fontFamily: "'Courier New',monospace", fontSize: 11, fontWeight: "bold", letterSpacing: 1,
-        background: bg, color, cursor: disabled ? "default" : "pointer",
-        transition: "background 0.15s, color 0.15s",
-      }}>
-      {ripped ? "NEW RECIEPT ↵" : "PRINT 🖶"}
-    </button>
-  );
-}
-
-export default function ThermalJournal() {
-  const [lines,    setLines]    = useState([]);
-  const [text,     setText]     = useState("");
-  const [val,      setVal]      = useState("");
-  const [header,   setHeader]   = useState("");
-  const [date,     setDate]     = useState(now());
+export default function App() {
+  // ── Paper state ──────────────────────────────────────────────────────────
+  const [lines,  setLines]  = useState([]);
+  const [text,   setText]   = useState("");
+  const [val,    setVal]    = useState("");
+  const [header, setHeader] = useState("");
+  const [date,   setDate]   = useState(now());
   const [editDate, setEditDate] = useState(false);
-  const [phase,    setPhase]    = useState("writing");
-  const [overlay,  setOverlay]  = useState(null);
 
-  const [showTotal,      setShowTotal]      = useState(false);
-  const [totalOverride,  setTotalOverride]  = useState(null);
-  const [totalLabel,     setTotalLabel]     = useState("TOTAL");
-  const [rTotalOverride, setRTotalOverride] = useState(null);
+  // ── Total state (live paper) ──────────────────────────────────────────────
+  const [showTotal,     setShowTotal]     = useState(false);
+  const [totalOverride, setTotalOverride] = useState(null);
+  const [totalLabel,    setTotalLabel]    = useState("TOTAL");
+
+  // ── Receipt state (printed copy) ─────────────────────────────────────────
+  const [receipt,        setReceipt]        = useState({ lines: [], header: "", date: "" });
   const [rShowTotal,     setRShowTotal]     = useState(false);
+  const [rTotalOverride, setRTotalOverride] = useState(null);
   const [rTotalLabel,    setRTotalLabel]    = useState("TOTAL");
 
-  const [receipt,  setReceipt]  = useState({ lines: [], header: "", date: "" });
+  // ── UI state ─────────────────────────────────────────────────────────────
+  const [phase,    setPhase]    = useState("writing"); // writing | ripping | ripped | feeding
+  const [overlay,  setOverlay]  = useState(null);      // null | "paper" | "receipt"
   const [receiptY, setReceiptY] = useState(0);
   const [feedProg, setFeedProg] = useState(0);
+  const [showDocs, setShowDocs] = useState(false);
 
   const inputRef = useRef();
   const valRef   = useRef();
@@ -318,7 +46,14 @@ export default function ThermalJournal() {
 
   const paperIsTall   = lines.length >= 6;
   const receiptIsTall = receipt.lines.length >= 6;
+  const writing  = phase === "writing";
+  const ripped   = phase === "ripped";
+  const feeding  = phase === "feeding";
+  const ripping  = phase === "ripping";
+  const showPaper   = writing || feeding;
+  const showReceipt = ripping || ripped;
 
+  // ── Line helpers ─────────────────────────────────────────────────────────
   const commit = () => {
     if (!text.trim()) return;
     setLines(l => [...l, { text, value: val.trim() }]);
@@ -331,6 +66,7 @@ export default function ThermalJournal() {
     setText(last.text); setVal(last.value || "");
   };
 
+  // ── Keyboard handlers ────────────────────────────────────────────────────
   const onTextKey = e => {
     if (phase === "ripped") { if (e.key.length === 1) startNew(e.key); return; }
     if (phase !== "writing") return;
@@ -344,33 +80,20 @@ export default function ThermalJournal() {
     if (e.key === "Escape" || e.key === "Tab") { e.preventDefault(); inputRef.current?.focus(); }
   };
 
-  const animate = (duration, onFrame, onDone) => {
-    let start = null;
-    const tick = ts => {
-      if (!start) start = ts;
-      const p = Math.min((ts - start) / duration, 1);
-      onFrame(p);
-      if (p < 1) raf.current = requestAnimationFrame(tick);
-      else onDone();
-    };
-    raf.current = requestAnimationFrame(tick);
-  };
-
-  const easeInOut = t => t < 0.5 ? 2*t*t : -1+(4-2*t)*t;
-  const easeOut   = t => 1 - Math.pow(1-t, 3);
-
+  // ── Print / new entry ────────────────────────────────────────────────────
   const print = () => {
     if (phase === "ripped") { startNew(""); return; }
     if (phase !== "writing") return;
     const extra = text.trim() ? [{ text, value: val.trim() }] : [];
     const final = [...lines, ...extra];
     if (!final.length) return;
+
     setOverlay(null);
     setReceipt({ lines: final, header, date });
     setRShowTotal(showTotal); setRTotalOverride(totalOverride); setRTotalLabel(totalLabel);
     setLines([]); setText(""); setVal("");
     setReceiptY(0); setPhase("ripping");
-    animate(700, p => setReceiptY(Math.round(easeInOut(p)*80)), () => setPhase("ripped"));
+    raf.current = animate(700, p => setReceiptY(Math.round(easeInOut(p) * 80)), () => setPhase("ripped"));
   };
 
   const startNew = (firstChar = "") => {
@@ -380,17 +103,19 @@ export default function ThermalJournal() {
     setShowTotal(false); setTotalOverride(null); setTotalLabel("TOTAL");
     if (firstChar) setText(firstChar);
     inputRef.current?.focus();
-    animate(550, p => setFeedProg(easeOut(p)), () => {
+    raf.current = animate(550, p => setFeedProg(easeOut(p)), () => {
       setPhase("writing"); setReceiptY(0); setFeedProg(1);
     });
   };
 
-  const writing     = phase === "writing";
-  const ripped      = phase === "ripped";
-  const feeding     = phase === "feeding";
-  const ripping     = phase === "ripping";
-  const showPaper   = writing || feeding;
-  const showReceipt = ripping || ripped;
+  // ── Line update helpers ──────────────────────────────────────────────────
+  const updateLine  = (i, v) => v === null
+    ? setLines(ls => ls.filter((_, j) => j !== i))
+    : setLines(ls => ls.map((x, j) => j === i ? v : x));
+
+  const updateRLine = (i, v) => v === null
+    ? setReceipt(r => ({ ...r, lines: r.lines.filter((_, j) => j !== i) }))
+    : setReceipt(r => ({ ...r, lines: r.lines.map((x, j) => j === i ? v : x) }));
 
   return (
     <div style={{
@@ -400,35 +125,33 @@ export default function ThermalJournal() {
       boxSizing: "border-box", position: "relative", overflow: "hidden",
     }}>
 
+      {/* ── Docs overlay ── */}
+      {showDocs && <Docs onClose={() => setShowDocs(false)} />}
+
+      {/* ── Scroll overlays ── */}
       {overlay === "paper" && (
         <ScrollOverlay header={header} date={date} lines={lines}
           showTotal={showTotal} totalOverride={totalOverride} totalLabel={totalLabel}
           onTotalOverride={setTotalOverride} onTotalLabelChange={setTotalLabel}
-          onClose={() => setOverlay(null)}
-          onUpdateLine={(i, v) => v === null
-            ? setLines(ls => ls.filter((_, j) => j !== i))
-            : setLines(ls => ls.map((x, j) => j === i ? v : x))
-          }
+          onClose={() => setOverlay(null)} onUpdateLine={updateLine}
         />
       )}
       {overlay === "receipt" && (
         <ScrollOverlay header={receipt.header} date={receipt.date} lines={receipt.lines}
           showTotal={rShowTotal} totalOverride={rTotalOverride} totalLabel={rTotalLabel}
           onTotalOverride={setRTotalOverride} onTotalLabelChange={setRTotalLabel}
-          onClose={() => setOverlay(null)}
-          onUpdateLine={(i, v) => v === null
-            ? setReceipt(r => ({ ...r, lines: r.lines.filter((_, j) => j !== i) }))
-            : setReceipt(r => ({ ...r, lines: r.lines.map((x, j) => j === i ? v : x) }))
-          }
+          onClose={() => setOverlay(null)} onUpdateLine={updateRLine}
         />
       )}
 
+      {/* ── Printed receipt ── */}
       {showReceipt && (
         <div onClick={() => ripped && setOverlay("receipt")}
           style={{
             position: "absolute",
             bottom: `calc(12vh + ${PRINTER_H}px + ${receiptY}px)`,
-            left: "calc(50% - 170px)", zIndex: 30,
+            left: `calc(50% - ${PAPER_WIDTH / 2}px)`,
+            zIndex: 30,
             pointerEvents: ripped ? "auto" : "none",
             cursor: ripped ? "pointer" : "default",
             clipPath: TORN_CLIP, borderRadius: "4px 4px 0 0", transform: "translateZ(0)",
@@ -448,12 +171,13 @@ export default function ThermalJournal() {
         </div>
       )}
 
-      <div style={{         width: 340, display: "flex", flexDirection: "column", alignItems: "center", position: "relative", zIndex: 20 }}>
+      {/* ── Main UI ── */}
+      <div style={{ width: PAPER_WIDTH, display: "flex", flexDirection: "column", alignItems: "center", position: "relative", zIndex: 20 }}>
 
-
+        {/* Live paper */}
         <div onClick={() => paperIsTall && setOverlay("paper")}
           style={{
-            width: "340px", boxSizing: "border-box",
+            width: `${PAPER_WIDTH}px`, boxSizing: "border-box",
             minHeight: `${28 + Math.min(lines.length, 1) * 6}vh`,
             maxHeight: feeding ? `${Math.round(feedProg * 46)}vh` : "none",
             overflow: "hidden", borderRadius: "4px 4px 0 0",
@@ -467,14 +191,22 @@ export default function ThermalJournal() {
           }}>
           {showPaper && <>
             {paperIsTall && (
-              <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, fontSize: 9, color: "#bbb", letterSpacing: 1, textAlign: "center", display: "flex", justifyContent: "center", alignItems: "center", gap: 12, padding: "4px 0 6px", background: "#fafaf8" }}>
+              <div style={{
+                position: "absolute", bottom: 0, left: 0, right: 0,
+                fontSize: 9, color: "#bbb", letterSpacing: 1, textAlign: "center",
+                display: "flex", justifyContent: "center", alignItems: "center", gap: 12,
+                padding: "4px 0 6px", background: "#fafaf8",
+              }}>
                 <span>↕ scroll</span>
-                <span onClick={e => { e.stopPropagation(); setLines([]); }} style={{ cursor: "pointer", color: "#e57373" }}
+                <span onClick={e => { e.stopPropagation(); setLines([]); }}
+                  style={{ cursor: "pointer", color: "#e57373" }}
                   onMouseEnter={e => e.currentTarget.style.opacity = "0.7"}
                   onMouseLeave={e => e.currentTarget.style.opacity = "1"}
                 >clear all</span>
               </div>
             )}
+
+            {/* Header / date */}
             <div style={{ textAlign: "center", marginBottom: 12, borderBottom: "1px dashed #ccc", paddingBottom: 10 }}>
               <input value={header} onChange={e => setHeader(e.target.value)} placeholder="Title"
                 onClick={e => e.stopPropagation()}
@@ -492,13 +224,15 @@ export default function ThermalJournal() {
                 }
               </div>
             </div>
+
+            {/* Lines */}
             <div onClick={e => e.stopPropagation()}>
               {lines.length === 0
                 ? <div style={{ color: "#ccc", fontSize: 12, textAlign: "center", padding: "8px 0" }}>start typing below...</div>
                 : lines.map((l, i) => (
                     <Line key={i} line={l}
-                      onEdit={v => setLines(ls => ls.map((x, j) => j === i ? v : x))}
-                      onDelete={() => setLines(ls => ls.filter((_, j) => j !== i))}
+                      onEdit={v => updateLine(i, v)}
+                      onDelete={() => updateLine(i, null)}
                     />
                   ))
               }
@@ -508,7 +242,8 @@ export default function ThermalJournal() {
                     ? <TotalRow lines={lines} override={totalOverride} onOverride={setTotalOverride}
                         label={totalLabel} onLabelChange={setTotalLabel}
                         onHide={() => setShowTotal(false)} />
-                    : <button onClick={() => setShowTotal(true)} style={{ background: "none", border: "none", cursor: "pointer", color: "#888", fontSize: 11, padding: "0 2px", fontFamily: "'Courier New',monospace" }}
+                    : <button onClick={() => setShowTotal(true)}
+                        style={{ background: "none", border: "none", cursor: "pointer", color: "#888", fontSize: 11, padding: "0 2px", fontFamily: "'Courier New',monospace" }}
                         onMouseEnter={e => e.currentTarget.style.color = "#aaa"}
                         onMouseLeave={e => e.currentTarget.style.color = "#888"}
                       >›</button>
@@ -519,9 +254,11 @@ export default function ThermalJournal() {
           </>}
         </div>
 
+        {/* Printer / input area */}
         <div style={{
           width: "100%", background: "#2c2c2c",
-          borderRadius: "0 0 12px 12px", padding: "14px 20px 32px", boxSizing: "border-box",
+          borderRadius: "0 0 12px 12px", padding: "32px 20px 24px", boxSizing: "border-box",
+          display: "flex", flexDirection: "column", justifyContent: "flex-end",
           boxShadow: "0 8px 32px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.08)",
         }}>
           <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
@@ -542,7 +279,8 @@ export default function ThermalJournal() {
             )}
           </div>
           <PrintButton phase={phase} ripping={ripping} feeding={feeding} onClick={print} />
-          <Tips />
+          <Tips onDocs={() => setShowDocs(true)} />
+          
         </div>
       </div>
     </div>
