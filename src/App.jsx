@@ -141,6 +141,7 @@ export default function App() {
           showTotal={rShowTotal} totalOverride={rTotalOverride} totalLabel={rTotalLabel}
           onTotalOverride={setRTotalOverride} onTotalLabelChange={setRTotalLabel}
           onClose={() => setOverlay(null)} onUpdateLine={updateRLine}
+          hideTotal={true}
         />
       )}
 

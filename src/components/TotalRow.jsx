@@ -55,13 +55,15 @@ export default function TotalRow({ lines, override, onOverride, onHide, label, o
             >{display}</span>
         }
       </div>
-      <div style={{ textAlign: "center", marginTop: 4 }}>
-        <span onClick={onHide}
-          style={{ fontSize: 9, color: "#aaa", letterSpacing: 1, cursor: "pointer" }}
-          onMouseEnter={e => e.currentTarget.style.color = "#e57373"}
-          onMouseLeave={e => e.currentTarget.style.color = "#aaa"}
-        >no total</span>
-      </div>
+      {onHide && (
+        <div style={{ textAlign: "center", marginTop: 4 }}>
+          <span onClick={onHide}
+            style={{ fontSize: 9, color: "#aaa", letterSpacing: 1, cursor: "pointer" }}
+            onMouseEnter={e => e.currentTarget.style.color = "#e57373"}
+            onMouseLeave={e => e.currentTarget.style.color = "#aaa"}
+          >no total</span>
+        </div>
+      )}
     </div>
   );
 }

@@ -6,7 +6,7 @@ export default function ScrollOverlay({
   header, date, lines,
   showTotal, totalOverride, totalLabel,
   onTotalOverride, onTotalLabelChange,
-  onClose, onUpdateLine,
+  onClose, onUpdateLine, hideTotal = false,
 }) {
   const [showTotalLocal, setShowTotalLocal] = useState(showTotal);
 
@@ -47,7 +47,7 @@ export default function ScrollOverlay({
                   onOverride={onTotalOverride}
                   label={totalLabel}
                   onLabelChange={onTotalLabelChange}
-                  onHide={() => setShowTotalLocal(false)}
+                  onHide={hideTotal ? null : () => setShowTotalLocal(false)}
                 />
               : <button onClick={() => setShowTotalLocal(true)}
                   style={{ background: "none", border: "none", cursor: "pointer", color: "#888", fontSize: 11, padding: "0 2px", fontFamily: "'Courier New',monospace" }}

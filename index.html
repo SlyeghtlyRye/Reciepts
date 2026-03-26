@@ -10,14 +10,19 @@
       body { background: #1a1a1a; }
 
       @media print {
+        @page {
+          margin: 0;
+          size: 54mm auto;
+        }
         body * { visibility: hidden; }
         .print-area, .print-area * { visibility: visible; }
         .print-area {
           position: absolute;
           top: 0;
-          left: 0;
-          right: 0;
+          margin-left: 18mm;
           clip-path: none !important;
+          width: 54mm !important;
+          max-width: 54mm !important;
         }
       }
     </style>
