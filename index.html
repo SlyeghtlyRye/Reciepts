@@ -13,9 +13,10 @@
         body * { visibility: hidden; }
         .print-area, .print-area * { visibility: visible; }
         .print-area {
-          position: fixed;
-          top: 0; left: 0;
-          width: 100%;
+          position: absolute;
+          top: 0;
+          left: 50%;
+          transform: translateX(-50%);
         }
       }
     </style>
