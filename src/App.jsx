@@ -146,7 +146,7 @@ export default function App() {
 
       {/* ── Printed receipt ── */}
       {showReceipt && (
-        <div onClick={() => ripped && setOverlay("receipt")}
+        <div className="print-area" onClick={() => ripped && setOverlay("receipt")}
           style={{
             position: "absolute",
             bottom: `calc(12vh + ${PRINTER_H}px + ${receiptY}px)`,
