@@ -8,8 +8,18 @@
     <style>
       * { margin: 0; padding: 0; box-sizing: border-box; }
       body { background: #1a1a1a; }
+
+      @media print {
+        body * { visibility: hidden; }
+        .print-area, .print-area * { visibility: visible; }
+        .print-area {
+          position: fixed;
+          top: 0; left: 0;
+          width: 100%;
+        }
+      }
     </style>
-    <script type="module" crossorigin src="/Reciepts/assets/index-DehVmRFh.js"></script>
+    <script type="module" crossorigin src="/Reciepts/assets/index-B5pr0T77.js"></script>
   </head>
   <body>
     <div id="root"></div>
