@@ -1,6 +1,7 @@
 # Reciepts
 
-A thermal receipt  app built with React + Vite. Type entries, assign values, print a receipt, and tear it off.
+A receipt  app built with React + Vite. Type entries, assign values, print a receipt.
+This was created as I like to journal so its nice to have a reciept for every entry
 
 ---
 
