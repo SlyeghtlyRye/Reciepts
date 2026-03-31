@@ -7,9 +7,14 @@ export default function ScrollOverlay({
   showTotal, totalOverride, totalLabel,
   onTotalOverride, onTotalLabelChange,
   onClose, onUpdateLine, hideTotal = false,
-  onUpdateHeader, onUpdateDate,
+  onUpdateHeader, onUpdateDate, onToggleTotal,
 }) {
   const [showTotalLocal, setShowTotalLocal] = useState(showTotal);
+
+  const toggleTotal = val => {
+    setShowTotalLocal(val);
+    onToggleTotal?.(val);
+  };
   const [editHeader, setEditHeader] = useState(false);
   const [editDate,   setEditDate]   = useState(false);
   const [headerVal,  setHeaderVal]  = useState(header);
@@ -79,9 +84,9 @@ export default function ScrollOverlay({
                   onOverride={onTotalOverride}
                   label={totalLabel}
                   onLabelChange={onTotalLabelChange}
-                  onHide={hideTotal ? null : () => setShowTotalLocal(false)}
+                  onHide={hideTotal ? null : () => toggleTotal(false)}
                 />
-              : <button onClick={() => setShowTotalLocal(true)}
+              : <button onClick={() => toggleTotal(true)}
                   style={{ background: "none", border: "none", cursor: "pointer", color: "#888", fontSize: 11, padding: "0 2px", fontFamily: "'Courier New',monospace" }}
                   onMouseEnter={e => e.currentTarget.style.color = "#aaa"}
                   onMouseLeave={e => e.currentTarget.style.color = "#888"}

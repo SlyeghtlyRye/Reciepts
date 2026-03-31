@@ -136,6 +136,7 @@ export default function App() {
           onClose={() => setOverlay(null)} onUpdateLine={updateLine}
           onUpdateHeader={v => setHeader(v)}
           onUpdateDate={v => setDate(v)}
+          onToggleTotal={v => setShowTotal(v)}
         />
       )}
       {overlay === "receipt" && (
@@ -146,6 +147,7 @@ export default function App() {
           hideTotal={true}
           onUpdateHeader={v => setReceipt(r => ({ ...r, header: v }))}
           onUpdateDate={v => setReceipt(r => ({ ...r, date: v }))}
+          onToggleTotal={v => setRShowTotal(v)}
         />
       )}
 
