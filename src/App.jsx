@@ -179,30 +179,37 @@ export default function App() {
           )}
         </div>
       )}
-
       {/* ── Receipt hint ── */}
       {ripped && (
         <div style={{
           position: "absolute",
-          bottom: `calc(12vh + ${PRINTER_H}px - 20px)`,
+          bottom: `calc(12vh + ${PRINTER_H}px + 8px)`,
           left: `calc(50% - ${PAPER_WIDTH / 2}px)`,
           width: PAPER_WIDTH,
           zIndex: 29,
           display: "flex", justifyContent: "space-between", alignItems: "center",
-          padding: "0 4px",
+          padding: "0 4px", alignItems: "flex-end",
         }}>
-          <span style={{ fontSize: 9, color: "#555", letterSpacing: 1, fontFamily: "'Courier New',monospace" }}>
-            click to edit
-          </span>
+          <button
+            onClick={() => setOverlay("receipt")}
+            style={{
+              background: "none",     border: "none", borderRadius: 3,
+              cursor: "pointer", color: "#555", fontSize: 9, letterSpacing: 1,
+              fontFamily: "'Courier New',monospace", padding: "0", marginTop: 5,
+            }}
+            onMouseEnter={e => e.currentTarget.style.color = "#aaa"}
+            onMouseLeave={e => e.currentTarget.style.color = "#555"}
+          >
+            Edit
+          </button>
           <span
             onClick={() => window.print()}
             style={{ fontSize: 9, color: "#555", letterSpacing: 1, cursor: "pointer", fontFamily: "'Courier New',monospace" }}
             onMouseEnter={e => e.currentTarget.style.color = "#aaa"}
             onMouseLeave={e => e.currentTarget.style.color = "#555"}
-          >print 🖶</span>
+          >Print </span>
         </div>
       )}
-
       {/* ── Main UI ── */}
       <div style={{ width: PAPER_WIDTH, display: "flex", flexDirection: "column", alignItems: "center", position: "relative", zIndex: 20 }}>
 
@@ -243,7 +250,7 @@ export default function App() {
               <input value={header} onChange={e => setHeader(e.target.value)} placeholder="Title"
                 onClick={e => e.stopPropagation()}
                 style={{ textAlign: "center", fontWeight: "bold", letterSpacing: 2, fontSize: 15, background: "transparent", border: "none", outline: "none", width: "100%", fontFamily: "'Courier New',monospace", color: "#111" }} />
-              <div style={{ fontSize: 10, color: "#999", marginTop: 3 }}>
+              <div style={{ fontSize: 10, color: "#999", marginTop: 5 }}>
                 {editDate
                   ? <input ref={dateRef} value={date} onChange={e => setDate(e.target.value)}
                       onBlur={() => setEditDate(false)} onKeyDown={e => e.key === "Enter" && setEditDate(false)}
