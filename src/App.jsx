@@ -134,6 +134,8 @@ export default function App() {
           showTotal={showTotal} totalOverride={totalOverride} totalLabel={totalLabel}
           onTotalOverride={setTotalOverride} onTotalLabelChange={setTotalLabel}
           onClose={() => setOverlay(null)} onUpdateLine={updateLine}
+          onUpdateHeader={v => setHeader(v)}
+          onUpdateDate={v => setDate(v)}
         />
       )}
       {overlay === "receipt" && (
@@ -142,6 +144,8 @@ export default function App() {
           onTotalOverride={setRTotalOverride} onTotalLabelChange={setRTotalLabel}
           onClose={() => setOverlay(null)} onUpdateLine={updateRLine}
           hideTotal={true}
+          onUpdateHeader={v => setReceipt(r => ({ ...r, header: v }))}
+          onUpdateDate={v => setReceipt(r => ({ ...r, date: v }))}
         />
       )}
 

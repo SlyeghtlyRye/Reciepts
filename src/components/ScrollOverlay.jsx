@@ -7,8 +7,16 @@ export default function ScrollOverlay({
   showTotal, totalOverride, totalLabel,
   onTotalOverride, onTotalLabelChange,
   onClose, onUpdateLine, hideTotal = false,
+  onUpdateHeader, onUpdateDate,
 }) {
   const [showTotalLocal, setShowTotalLocal] = useState(showTotal);
+  const [editHeader, setEditHeader] = useState(false);
+  const [editDate,   setEditDate]   = useState(false);
+  const [headerVal,  setHeaderVal]  = useState(header);
+  const [dateVal,    setDateVal]    = useState(date);
+
+  const saveHeader = () => { setEditHeader(false); onUpdateHeader?.(headerVal); };
+  const saveDate   = () => { setEditDate(false);   onUpdateDate?.(dateVal); };
 
   return (
     <div style={{
@@ -27,8 +35,32 @@ export default function ScrollOverlay({
         </div>
 
         <div style={{ textAlign: "center", marginBottom: 12, borderBottom: "1px dashed #ccc", paddingBottom: 10 }}>
-          {header && <div style={{ fontSize: 15, fontWeight: "bold", letterSpacing: 2, marginBottom: 3 }}>{header}</div>}
-          <div style={{ fontSize: 10, color: "#999" }}>{date}</div>
+          {editHeader
+            ? <input value={headerVal} onChange={e => setHeaderVal(e.target.value)}
+                onBlur={saveHeader} onKeyDown={e => e.key === "Enter" && saveHeader()}
+                autoFocus
+                style={{ textAlign: "center", fontWeight: "bold", letterSpacing: 2, fontSize: 15,
+                  background: "#fffde7", border: "none", borderBottom: "1px solid #aaa",
+                  outline: "none", width: "100%", fontFamily: "'Courier New',monospace", color: "#111" }} />
+            : <div onClick={() => setEditHeader(true)}
+                style={{ fontSize: 15, fontWeight: "bold", letterSpacing: 2, marginBottom: 3,
+                  cursor: "text", padding: "1px 2px", minHeight: 22 }}
+                onMouseEnter={e => e.currentTarget.style.background = "#f0f0ee"}
+                onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+              >{headerVal || <span style={{ color: "#ccc" }}>Title</span>}</div>
+          }
+          {editDate
+            ? <input value={dateVal} onChange={e => setDateVal(e.target.value)}
+                onBlur={saveDate} onKeyDown={e => e.key === "Enter" && saveDate()}
+                style={{ background: "#fffde7", border: "none", borderBottom: "1px solid #aaa",
+                  outline: "none", fontSize: 10, fontFamily: "'Courier New',monospace",
+                  color: "#777", textAlign: "center", width: "100%" }} />
+            : <div onClick={() => setEditDate(true)}
+                style={{ fontSize: 10, color: "#999", cursor: "text", padding: "1px 2px" }}
+                onMouseEnter={e => e.currentTarget.style.background = "#f0f0ee"}
+                onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+              >{dateVal}</div>
+          }
         </div>
 
         {lines.map((l, i) => (
