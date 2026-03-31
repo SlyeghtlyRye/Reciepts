@@ -30,8 +30,8 @@ export default function App() {
   const [rTotalLabel,    setRTotalLabel]    = useState("TOTAL");
 
   // ── UI state ─────────────────────────────────────────────────────────────
-  const [phase,    setPhase]    = useState("writing"); // writing | ripping | ripped | feeding
-  const [overlay,  setOverlay]  = useState(null);      // null | "paper" | "receipt"
+  const [phase,    setPhase]    = useState("writing");
+  const [overlay,  setOverlay]  = useState(null);
   const [receiptY, setReceiptY] = useState(0);
   const [feedProg, setFeedProg] = useState(0);
   const [showDocs, setShowDocs] = useState(false);
@@ -180,6 +180,29 @@ export default function App() {
         </div>
       )}
 
+      {/* ── Receipt hint ── */}
+      {ripped && (
+        <div style={{
+          position: "absolute",
+          bottom: `calc(12vh + ${PRINTER_H}px - 20px)`,
+          left: `calc(50% - ${PAPER_WIDTH / 2}px)`,
+          width: PAPER_WIDTH,
+          zIndex: 29,
+          display: "flex", justifyContent: "space-between", alignItems: "center",
+          padding: "0 4px",
+        }}>
+          <span style={{ fontSize: 9, color: "#555", letterSpacing: 1, fontFamily: "'Courier New',monospace" }}>
+            click to edit
+          </span>
+          <span
+            onClick={() => window.print()}
+            style={{ fontSize: 9, color: "#555", letterSpacing: 1, cursor: "pointer", fontFamily: "'Courier New',monospace" }}
+            onMouseEnter={e => e.currentTarget.style.color = "#aaa"}
+            onMouseLeave={e => e.currentTarget.style.color = "#555"}
+          >print 🖶</span>
+        </div>
+      )}
+
       {/* ── Main UI ── */}
       <div style={{ width: PAPER_WIDTH, display: "flex", flexDirection: "column", alignItems: "center", position: "relative", zIndex: 20 }}>
 
@@ -289,7 +312,6 @@ export default function App() {
           </div>
           <PrintButton phase={phase} ripping={ripping} feeding={feeding} onClick={print} />
           <Tips onDocs={() => setShowDocs(true)} />
-          
         </div>
       </div>
     </div>
