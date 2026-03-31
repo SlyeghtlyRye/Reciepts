@@ -158,13 +158,15 @@ export default function App() {
             clipPath: TORN_CLIP, borderRadius: "4px 4px 0 0", transform: "translateZ(0)",
             ...paperStyle(receipt.lines.length, { boxShadow: "0 6px 24px rgba(0,0,0,0.45)" }),
           }}>
-          <div style={{ textAlign: "center", marginBottom: 12, borderBottom: "1px dashed #ccc", paddingBottom: 10 }}>
+          <div className="header-section" style={{ textAlign: "center", marginBottom: 12, borderBottom: "1px dashed #ccc", paddingBottom: 10 }}>
             {receipt.header && <div style={{ fontSize: 15, fontWeight: "bold", letterSpacing: 2, marginBottom: 3 }}>{receipt.header}</div>}
             <div style={{ fontSize: 10, color: "#999" }}>{receipt.date}</div>
           </div>
           {receipt.lines.map((l, i) => <PrintedLine key={i} line={l} />)}
           {rShowTotal && receipt.lines.length > 0 && (
-            <PrintedTotal lines={receipt.lines} override={rTotalOverride} label={rTotalLabel} />
+            <div className="total-section" style={{ borderTop: "1px dashed #ccc", paddingTop: 6, marginTop: 6 }}>
+              <PrintedTotal lines={receipt.lines} override={rTotalOverride} label={rTotalLabel} />
+            </div>
           )}
           {receiptIsTall && (
             <div style={{ fontSize: 9, color: "#bbb", letterSpacing: 1, textAlign: "center", marginTop: 4 }}>↕ scroll</div>

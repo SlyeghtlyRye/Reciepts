@@ -20,7 +20,7 @@ import { calcTotal, fmtNum } from "../utils";
 export function PrintedTotal({ lines, override, label }) {
   const display = override !== null ? override : fmtNum(calcTotal(lines));
   return (
-    <div style={{ marginTop: 6, display: "flex", alignItems: "center" }}>
+    <div style={{ display: "flex", alignItems: "center" }}>
       <span style={{ fontSize: 12, fontWeight: "bold", letterSpacing: 1, color: "#555", fontFamily: "'Courier New',monospace" }}>
         {label}
       </span>

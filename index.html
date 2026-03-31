@@ -8,7 +8,6 @@
     <style>
       * { margin: 0; padding: 0; box-sizing: border-box; }
       body { background: #1a1a1a; }
-
       @media print {
         @page {
           margin: 0;
@@ -29,6 +28,12 @@
           print-color-adjust: exact;
           font-weight: bold !important;
           color: #000 !important;
+        }
+        .print-area .header-section {
+          border-bottom: 1px dashed #000 !important;
+        }
+        .print-area .total-section {
+          border-top: 1px dashed #000 !important;
         }
       }
     </style>
