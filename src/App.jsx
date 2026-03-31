@@ -144,7 +144,7 @@ export default function App() {
           showTotal={rShowTotal} totalOverride={rTotalOverride} totalLabel={rTotalLabel}
           onTotalOverride={setRTotalOverride} onTotalLabelChange={setRTotalLabel}
           onClose={() => setOverlay(null)} onUpdateLine={updateRLine}
-          hideTotal={true}
+          hideTotal={false}
           onUpdateHeader={v => setReceipt(r => ({ ...r, header: v }))}
           onUpdateDate={v => setReceipt(r => ({ ...r, date: v }))}
           onToggleTotal={v => setRShowTotal(v)}
